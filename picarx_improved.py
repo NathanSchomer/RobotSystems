@@ -1,4 +1,5 @@
 import time
+import atexit
 try:
     from ezblock import *
 except ImportError:
@@ -31,21 +32,32 @@ motor_direction_pins = [left_rear_dir_pin, right_rear_dir_pin]
 motor_speed_pins = [left_rear_pwm_pin, right_rear_pwm_pin]
 cali_dir_value = [1, -1]
 cali_speed_value = [0, 0]
-#初始化PWM引脚
+
 for pin in motor_speed_pins:
     pin.period(PERIOD)
     pin.prescaler(PRESCALER)
 
+
+# TODO: UNTESTED
+def stop_motors():
+    set_motor_speed(1, 0)
+    set_motor_speed(2, 0)
+
+
+atexit.register(stop_motors)
+
+
 def set_motor_speed(motor, speed):
-    global cali_speed_value,cali_dir_value
+    global cali_speed_value, cali_dir_value
     motor -= 1
     if speed >= 0:
         direction = 1 * cali_dir_value[motor]
     elif speed < 0:
         direction = -1 * cali_dir_value[motor]
     speed = abs(speed)
-    if speed != 0:
-        speed = int(speed /2 ) + 50
+    # TODO: removed scaling... UNTESTED
+    # if speed != 0:
+    #     speed = int(speed / 2) + 50
     speed = speed - cali_speed_value[motor]
     if direction < 0:
         motor_direction_pins[motor].high()
@@ -53,6 +65,7 @@ def set_motor_speed(motor, speed):
     else:
         motor_direction_pins[motor].low()
         motor_speed_pins[motor].pulse_width_percent(speed)
+
 
 def motor_speed_calibration(value):
     global cali_speed_value,cali_dir_value
