@@ -2,6 +2,9 @@ import time
 import atexit
 try:
     from ezblock import *
+    from ezblock import __reset_mcu__
+    __reset_mcu__()
+    time.sleep(0.01)
 except ImportError:
     print("This computer does nto appear to be a PiCar-X system "+
           "(/opt/ezblock is not present). Shadowing hardware calls "+
