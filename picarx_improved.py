@@ -1,5 +1,8 @@
+import logging
+from logdecorator import log_on_start, log_on_end, log_on_error
 import time
 import atexit
+from math import cos, radians, pi
 try:
     from ezblock import *
     from ezblock import __reset_mcu__
@@ -10,6 +13,11 @@ except ImportError:
           "(/opt/ezblock is not present). Shadowing hardware calls "+
           "with substitute functions")
     from sim_ezblock import *
+
+logging_format = "%(asctime)s: %(message)s"
+logging.basicConfig(format=logging_format, level=logging.INFO,
+                    datefmt="%H:%M:%S")
+logging.getLogger().setLevel(logging.DEBUG)
 
 PERIOD = 4095
 PRESCALER = 10
@@ -42,7 +50,11 @@ for pin in motor_speed_pins:
 
 
 # TODO: UNTESTED
+@log_on_start(logging.DEBUG, "stop_motors(): starting")
+@log_on_error(logging.DEBUG, "stop_motors(): error")
+@log_on_end(logging.DEBUG, "stop_motors(): end")
 def stop_motors():
+    logging.debug("stop_motors()")
     set_motor_speed(1, 0)
     set_motor_speed(2, 0)
 
@@ -135,8 +147,29 @@ def backward(speed):
     set_motor_speed(2, speed)
 
 def forward(speed):
-    set_motor_speed(1, -1*speed)
-    set_motor_speed(2, -1*speed)
+
+    # constants
+    wheelbase_len = 11.0
+    half_wheelbase_width = 11.0 / 2.0
+
+    # wheel angle of imaginary center wheel
+    theta = radians(dir_servo_pin.last_angle)
+
+    if theta != 0:
+        center_radius = wheelbase_len / cos(pi/2 - theta)
+        wheelpath_ratio = (center_radius + half_wheelbase_width) /\
+                          (center_radius - half_wheelbase_width)
+
+        speed1 = speed2 = speed
+
+        # scale speed of outside wheel when turning
+        if theta < 0:
+            speed1 *= wheelpath_ratio
+        elif theta > 0:
+            speed2 *= wheelpath_ratio
+
+    set_motor_speed(1, -1*speed1)
+    set_motor_speed(2, -1*speed2)
 
 def stop():
     set_motor_speed(1, 0)
