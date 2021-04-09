@@ -53,9 +53,9 @@ class PicarX():
         self.S2 = ADC('A2')
 
         self.Servo_dir_flag = 1
-        self.self.dir_cal_value = 0
-        self.self.cam_cal_value_1 = 0
-        self.self.cam_cal_value_2 = 0
+        self.dir_cal_value = 0
+        self.cam_cal_value_1 = 0
+        self.cam_cal_value_2 = 0
         self.motor_direction_pins = [self.left_rear_dir_pin,
                                      self.right_rear_dir_pin]
         self.motor_speed_pins = [self.left_rear_pwm_pin,
@@ -69,7 +69,6 @@ class PicarX():
 
         atexit.register(self.stop_motors)
 
-    # TODO: UNTESTED
     @log_on_start(logging.DEBUG, "stop_motors(): starting")
     @log_on_error(logging.DEBUG, "stop_motors(): error")
     @log_on_end(logging.DEBUG, "stop_motors(): end")
@@ -85,9 +84,6 @@ class PicarX():
         elif speed < 0:
             direction = -1 * self.cali_dir_value[motor]
         speed = abs(speed)
-        # TODO: removed scaling... UNTESTED
-        # if speed != 0:
-        #     speed = int(speed / 2) + 50
         speed = speed - self.cali_speed_value[motor]
         if direction < 0:
             self.motor_direction_pins[motor].high()
@@ -160,12 +156,12 @@ class PicarX():
         # wheel angle of imaginary center wheel
         theta = radians(self.dir_servo_pin.last_angle)
 
+        speed1 = speed2 = speed
+
         if theta != 0:
             center_radius = wheelbase_len / cos(pi/2 - theta)
             wheelpath_ratio = (center_radius + half_wheelbase_width) /\
                               (center_radius - half_wheelbase_width)
-
-            speed1 = speed2 = speed
 
             # scale speed of outside wheel when turning
             if theta < 0:
@@ -222,6 +218,6 @@ if __name__ == "__main__":
     try:
         picar.dir_servo_angle_calibration(-10)
         while 1:
-            test()
+            test(picar)
     finally:
         picar.stop()
