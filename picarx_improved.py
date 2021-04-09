@@ -16,6 +16,9 @@ from math import cos, radians, pi
 # import skeleton ezblock class if not on raspberry pi
 try:
     from ezblock import PWM, ADC, Servo, Pin
+    from ezblock import __reset_mcu__
+    __reset_mcu__()
+    time.sleep(0.01)
 except ImportError:
     print("This computer does nto appear to be a PiCar-X system " +
           "(/opt/ezblock is not present). Shadowing hardware calls " +
