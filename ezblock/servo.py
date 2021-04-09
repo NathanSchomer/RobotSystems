@@ -5,6 +5,7 @@ class Servo(_Basic_class):
     MAX_PW = 2500
     MIN_PW = 500
     _freq = 50
+
     def __init__(self, pwm):
         super().__init__()
         self.pwm = pwm
@@ -12,6 +13,7 @@ class Servo(_Basic_class):
         prescaler = int(float(self.pwm.CLOCK) /self.pwm._freq/self.pwm.period())
         self.pwm.prescaler(prescaler)
         # self.angle(90)
+        self.last_angle = 0
 
     # angle ranges -90 to 90 degrees
     def angle(self, angle):
@@ -28,6 +30,7 @@ class Servo(_Basic_class):
         value = int(pwr*self.pwm.period())
         self._debug("pulse width value: %d" % value)
         self.pwm.pulse_width(value)
+        self.last_angle = angle
 
 def test():
     from ezblock import PWM
