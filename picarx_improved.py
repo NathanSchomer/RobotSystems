@@ -53,7 +53,7 @@ class PicarX():
         self.S2 = ADC('A2')
 
         self.Servo_dir_flag = 1
-        self.dir_cal_value = 0
+        self.dir_cal_value = 6.5
         self.cam_cal_value_1 = 0
         self.cam_cal_value_2 = 0
         self.motor_direction_pins = [self.left_rear_dir_pin,
@@ -143,11 +143,15 @@ class PicarX():
         self.set_motor_speed(1, speed)
         self.set_motor_speed(2, speed)
 
-    def backward(self, speed):
+    def backward(self, speed, runtime=0):
         self.set_motor_speed(1, speed)
         self.set_motor_speed(2, speed)
 
-    def forward(self, speed):
+        if runtime > 0:
+            time.sleep(runtime)
+            self.stop()
+
+    def forward(self, speed, runtime=0):
 
         # constants
         wheelbase_len = 11.0
@@ -171,6 +175,10 @@ class PicarX():
 
         self.set_motor_speed(1, -1*speed1)
         self.set_motor_speed(2, -1*speed2)
+        
+        if runtime > 0:
+            time.sleep(runtime)
+            self.stop()
 
     def stop(self):
         self.set_motor_speed(1, 0)
