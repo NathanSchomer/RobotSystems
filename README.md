@@ -6,8 +6,8 @@ https://www.sunfounder.com/products/picar-x
 
 ![alt text](https://cdn.shopify.com/s/files/1/0474/7729/3217/products/CN0270D-01_500x.jpg?v=1599211713)
 
-picarx_improved.py is a class re-implementation of the off-the-shelf PiCar-X API with some improvements.
-picarx_advanced.py provides a higher-level interface and interactive control interface for testing.
+**picarx_improved.py** a class re-implementation of the off-the-shelf PiCar-X API with some improvements.
+**picarx_advanced.py** provides a higher-level interface and interactive control interface for testing.
 
 **Usage:**
 ```
