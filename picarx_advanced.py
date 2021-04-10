@@ -45,6 +45,19 @@ class PicarX_Advanced(PicarX):
         self.forward(55, 0.55)
         self.stop()
 
+    def austin_powers(self):
+        for _ in range(5):
+            self.angle(10)
+            self.forward(50)
+            sleep(0.5)
+            self.stop()
+            sleep(0.5)
+            self.angle(-10)
+            self.backward(50)
+            sleep(0.5)
+            self.stop()
+            sleep(0.5)
+
     def k_turn(self, direction='left'):
 
         if direction == 'left':
@@ -92,12 +105,12 @@ class PicarX_Advanced(PicarX):
                  "or select one of the following actions:\n" +\
                  "\tP: parallel park\n\tK: k-turn\n\te: stop\n" +\
                  "Use esc or X to exit\n\n"
-        
+
         print(prompt)
         choice = get_char().lower()
 
         while choice != 'x':
- 
+
             if choice == 'w':
                 self.speed += 10
             elif choice == 's':
@@ -122,12 +135,18 @@ class PicarX_Advanced(PicarX):
                 self.angle = 0
                 self.speed = 0
                 self.stop()
+            elif choice == 'q':
+                self.austin_powers()
+                self.angle = 0
+                self.speed = 0
+                self.stop()
 
             self.set_dir_servo_angle(self.angle)
             self.forward(self.speed)
-           
+
             print(prompt)
             choice = get_char().lower()
+
 
 if __name__ == "__main__":
 

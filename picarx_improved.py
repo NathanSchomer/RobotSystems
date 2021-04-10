@@ -167,6 +167,8 @@ class PicarX():
             wheelpath_ratio = (center_radius + half_wheelbase_width) /\
                               (center_radius - half_wheelbase_width)
 
+            # TODO: set maximum wheelpath_ratio value to prevent donuts
+
             # scale speed of outside wheel when turning
             if theta < 0:
                 speed1 *= wheelpath_ratio
@@ -175,7 +177,7 @@ class PicarX():
 
         self.set_motor_speed(1, -1*speed1)
         self.set_motor_speed(2, -1*speed2)
-        
+
         if runtime > 0:
             time.sleep(runtime)
             self.stop()
