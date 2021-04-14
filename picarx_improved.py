@@ -32,7 +32,7 @@ logging.basicConfig(format=logging_format, level=logging.INFO,
 logging.getLogger().setLevel(logging.DEBUG)
 
 
-class PicarX():
+class PicarX:
 
     def __init__(self):
 
