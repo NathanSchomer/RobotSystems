@@ -79,20 +79,21 @@ class Controller:
 if __name__ == "__main__":
 
     sensitivity = 0.99
-    scale = 200
+    scale = 40
     max_time = 30
     speed = 20
 
     car = PicarX()
     sensor = Sensor(picar=car)
     proc = SensorProcessing()
-    control = Controller(car)
+    control = Controller(car, scale=scale)
 
-    # car.forward(speed)
+    car.forward(speed)
     t = time()
     while time() - t < max_time:
         img = sensor.read()
         mask, dir_val = proc.process(img)
         print(dir_val)
-        # angle = control.steer(dir_val)
+        angle = control.steer(dir_val)
+        print(angle)
     car.stop()
