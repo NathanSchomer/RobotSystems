@@ -66,17 +66,15 @@ class SensorProcessing:
 
         deltas = self.calc_deltas(sensor_vals)
 
-        #if self.polarity == 1:
-        #    deltas = [-1*d for d in deltas]
+        if self.polarity == 1:
+            deltas = [-1*d for d in deltas]
 
         left = sum(deltas[:len(deltas)//2])
         right = sum(deltas[len(deltas)//2:])
 
         n_half = len(deltas)//2
 
-        print('[{}, {}]'.format(left, right))
         thresh = (1 - self.sensitivity) * (n_half * self.max_val)
-        print('thresh = {}'.format(thresh))
 
         dir_value = 0
 
@@ -86,16 +84,40 @@ class SensorProcessing:
         if right > thresh:
             dir_value += (right-thresh) / (self.max_val-thresh)
 
-        print(">> dir_value = {}".format(dir_value))
+        return dir_value
+
+
+class Controller:
+
+    def __init__(self, picar, scale=10):
+        self.picar = picar
+        self.scale = scale
+
+    def steer(self, direction):
+        angle = self.scale * direction
+        self.picar.set_dir_servo_angle(angle)
+        return angle
 
 
 if __name__ == "__main__":
-    
-    sensor = Sensor()
-    proc = SensorProcessing(sensitivity=0.95, polarity=0)
 
+    sensitivity = 0.99
+    polarity = 0
+    scale = 200
+    max_time = 10
+    speed = 20
+    
+    car = PicarX()
+    sensor = Sensor(picar=car)
+    proc = SensorProcessing(sensitivity=sensitivity,
+                            polarity=polarity)
+    control = Controller(picar=car,
+                         scale=scale)
+
+    car.forward(speed)
     t = time()
-    while time() - t < 10:
+    while time() - t < max_time:
         vals = sensor.read()
-        proc.process(vals)
-        sleep(1)
+        dir_val = proc.process(vals)
+        angle = control.steer(dir_val)
+    stop()
