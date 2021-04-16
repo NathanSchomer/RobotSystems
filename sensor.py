@@ -1,5 +1,5 @@
 from picarx_improved import PicarX
-from time import time, sleep
+from time import time
 
 
 class Sensor:
@@ -24,7 +24,7 @@ class SensorProcessing:
         """
         Args:
             sensitivity (float) : Sensitivity to edge in range [0, 1]
-            polarity    (int)   : 0 to follow dark line or 1 to follow light line
+            polarity  (int)   : 0 to follow dark line or 1 to follow light line
         """
         assert 0 <= polarity <= 1,\
             "polarity must be 0 or 1"
@@ -41,7 +41,7 @@ class SensorProcessing:
     def calc_deltas(sensor_vals):
 
         middle_idx = len(sensor_vals) / 2.0
-        deltas = [0]*(len(sensor_vals)-len(sensor_vals)%2)
+        deltas = [0] * (len(sensor_vals) - len(sensor_vals) % 2)
 
         for n, val in enumerate(sensor_vals):
             if n < middle_idx:
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     scale = 200
     max_time = 10
     speed = 20
-    
+
     car = PicarX()
     sensor = Sensor(picar=car)
     proc = SensorProcessing(sensitivity=sensitivity,
@@ -120,4 +120,4 @@ if __name__ == "__main__":
         vals = sensor.read()
         dir_val = proc.process(vals)
         angle = control.steer(dir_val)
-    stop()
+    car.stop()
