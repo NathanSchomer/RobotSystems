@@ -1,5 +1,13 @@
 from picarx_improved import PicarX
-from time import time
+from time import time, sleep
+from bus import Bus
+from threading import Event, Lock
+import concurrent.futures
+import signal
+
+
+# better way to do this??
+_stop_requested = Event()
 
 
 class Sensor:
@@ -9,6 +17,15 @@ class Sensor:
         self.sensors = {"left": picar.S0,
                         "middle": picar.S1,
                         "right": picar.S2}
+
+    def read_threaded(self, bus: Bus, delay: float, kill_thread: Event):
+
+        lock = Lock()
+
+        while not kill_thread.is_set():
+            with lock:
+                bus.write(self.read())
+            sleep(delay)
 
     def read(self):
         """
@@ -36,6 +53,15 @@ class SensorProcessing:
 
         self.min_val = 0
         self.max_val = 1720
+
+    def process_threaded(self, in_bus: Bus, out_bus: Bus,
+                         delay: float, kill_thread: Event):
+
+        while not kill_thread.is_set():
+            sensor_vals = in_bus.read()
+            control_val = self.process(sensor_vals)
+            out_bus.write(control_val)
+            sleep(delay)
 
     @staticmethod
     def calc_deltas(sensor_vals):
@@ -93,20 +119,44 @@ class Controller:
         self.picar = picar
         self.scale = scale
 
+    def steer_threaded(self, bus: Bus,
+                       delay: float, kill_thread: Event):
+
+        while not kill_thread.is_set():
+            self.steer(bus.read())
+            sleep(delay)
+
     def steer(self, direction):
         angle = self.scale * direction
         self.picar.set_dir_servo_angle(angle)
         return angle
 
 
+def run_single_thread(car, sensor, proc, control):
+    max_time = 10
+    t = time()
+    while time() - t < max_time:
+        vals = sensor.read()
+        dir_val = proc.process(vals)
+        control.steer(dir_val)
+    car.stop()
+
+
+def sigint_handler():
+    global _stop_requested
+    _stop_requested.set()
+
+
 if __name__ == "__main__":
+
+    signal.signal(signal.SIGINT, sigint_handler)
 
     sensitivity = 0.99
     polarity = 0
     scale = 200
-    max_time = 10
     speed = 20
 
+    # setup objects
     car = PicarX()
     sensor = Sensor(picar=car)
     proc = SensorProcessing(sensitivity=sensitivity,
@@ -114,10 +164,26 @@ if __name__ == "__main__":
     control = Controller(picar=car,
                          scale=scale)
 
+    # setup busses
+    sensor_values_bus = Bus()
+    interpreter_bus = Bus()
+
+    # delay values (seconds)
+    sensor_delay = 0.1
+    interpreter_delay = 0.1
+    control_delay = 0.1
+
     car.forward(speed)
-    t = time()
-    while time() - t < max_time:
-        vals = sensor.read()
-        dir_val = proc.process(vals)
-        angle = control.steer(dir_val)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        eSensor = executor.submit(sensor.read_threaded, sensor_values_bus,
+                                  sensor_delay, _stop_requested)
+        eInterpreter = executor.submit(proc.process_threaded,
+                                       sensor_values_bus,
+                                       interpreter_bus, interpreter_delay,
+                                       _stop_requested)
+        eController = executor.submit(control.steer_threaded, interpreter_bus,
+                                      control_delay, _stop_requested)
+        eSensor.result()
+
     car.stop()

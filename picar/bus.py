@@ -33,5 +33,3 @@ if __name__ == "__main__":
     # read message from bus
     msg, t = bus.read()
     print("Message: {}\nTimestamp: {}".format(msg, t))
-
-    bus.write(float(10))
