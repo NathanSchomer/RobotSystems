@@ -58,7 +58,6 @@ class SensorProcessing:
     def process_threaded(self, in_bus: Bus, out_bus: Bus,
                          delay: float, kill_thread: Event):
 
-        print(delay)
         while not kill_thread.is_set():
             sensor_vals = in_bus.read()
             control_val = self.process(sensor_vals)
@@ -184,7 +183,6 @@ if __name__ == "__main__":
                                        sensor_values_bus,
                                        interpreter_bus, interpreter_delay,
                                        _stop_requested)
-        print("setting up controller...")
         eController = executor.submit(control.steer_threaded, interpreter_bus,
                                       control_delay, _stop_requested)
         eSensor.result()
