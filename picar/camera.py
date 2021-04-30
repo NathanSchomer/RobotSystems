@@ -59,8 +59,9 @@ class SensorProcessing:
 
         while not kill_thread.is_set():
             sensor_vals = in_bus.read()
-            control_val = self.process(sensor_vals)
-            out_bus.write(control_val)
+            if sensor_vals is not None:
+                control_val = self.process(sensor_vals)
+                out_bus.write(control_val)
             sleep(delay)
 
     @staticmethod
@@ -87,7 +88,7 @@ class SensorProcessing:
 
         return ret
 
-    def process(self, img):
+    def process(self, img) -> float:
         """
         For a given image, determine porportional offset from line
             with return value in the range [-1, 1]
@@ -111,7 +112,7 @@ class SensorProcessing:
         dists = [self.sum_row(img[n, :]) for n in range(img.shape[0])]
 
         mean_dist = sum(dists) / len(dists)
-        return img, mean_dist / (img.shape[1]//2)
+        return mean_dist / (img.shape[1]//2)
 
 
 class Controller:
@@ -144,7 +145,7 @@ def run_single_thread(car, sensor, proc, control):
     car.stop()
 
 
-def sigint_handler():
+def sigint_handler(sig, frame):
     global _stop_requested
     _stop_requested.set()
 
@@ -173,7 +174,7 @@ if __name__ == "__main__":
     interpreter_delay = 0.1
     control_delay = 0.1
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         eSensor = executor.submit(sensor.read_threaded, sensor_values_bus,
                                   sensor_delay, _stop_requested)
         eInterpreter = executor.submit(proc.process_threaded,

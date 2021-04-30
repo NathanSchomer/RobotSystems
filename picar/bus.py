@@ -9,7 +9,7 @@ class Bus:
         self._time = None
 
     def read(self):
-        return self._message, self._time
+        return self._message
 
     def write(self, msg):
 

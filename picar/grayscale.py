@@ -24,7 +24,8 @@ class Sensor:
 
         while not kill_thread.is_set():
             with lock:
-                bus.write(self.read())
+                vals = self.read()
+            bus.write(vals)
             sleep(delay)
 
     def read(self):
@@ -64,7 +65,7 @@ class SensorProcessing:
             sleep(delay)
 
     @staticmethod
-    def calc_deltas(sensor_vals):
+    def calc_deltas(sensor_vals: list) -> list:
 
         middle_idx = len(sensor_vals) / 2.0
         deltas = [0] * (len(sensor_vals) - len(sensor_vals) % 2)
@@ -76,7 +77,7 @@ class SensorProcessing:
                 deltas[n-1] = sensor_vals[n-1] - val
         return deltas
 
-    def process(self, sensor_vals):
+    def process(self, sensor_vals: list) -> float:
         """
         This function is agnostic of the number of sensor_readings.
         Additionally, it is assumed that sensor_readings are in order
@@ -142,7 +143,7 @@ def run_single_thread(car, sensor, proc, control):
     car.stop()
 
 
-def sigint_handler():
+def sigint_handler(sig, frame):
     global _stop_requested
     _stop_requested.set()
 
@@ -154,7 +155,7 @@ if __name__ == "__main__":
     sensitivity = 0.99
     polarity = 0
     scale = 200
-    speed = 20
+    speed = 25
 
     # setup objects
     car = PicarX()
@@ -165,8 +166,8 @@ if __name__ == "__main__":
                          scale=scale)
 
     # setup busses
-    sensor_values_bus = Bus()
-    interpreter_bus = Bus()
+    sensor_values_bus = Bus(msg_type=list)
+    interpreter_bus = Bus(msg_type=float)
 
     # delay values (seconds)
     sensor_delay = 0.1
@@ -175,7 +176,7 @@ if __name__ == "__main__":
 
     car.forward(speed)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         eSensor = executor.submit(sensor.read_threaded, sensor_values_bus,
                                   sensor_delay, _stop_requested)
         eInterpreter = executor.submit(proc.process_threaded,
