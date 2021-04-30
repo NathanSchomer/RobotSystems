@@ -1,6 +1,6 @@
 from picarx_improved import PicarX
 import signal
-from rosros import Bus, Consumer, Producer, runConcurrently, ConsumerProducer
+from rossros import Bus, Consumer, Producer, runConcurrently, ConsumerProducer
 
 
 # globals
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     gray_producer = Producer(read_sensor,
                              output_busses=sensor_values_bus,
-                             delay=0.9,
+                             delay=0.09,
                              name="Grayscale Sensor Producer")
 
     gray_proc = ConsumerProducer(proc_grayscale_sensor,
