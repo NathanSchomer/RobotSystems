@@ -1,6 +1,8 @@
 from picarx_improved import PicarX
 import signal
 from rossros import Bus, Consumer, Producer, runConcurrently, ConsumerProducer
+from ezblock import Pin
+from ezblock import Ultrasonic
 
 
 # globals
@@ -64,6 +66,28 @@ def control(direction):
     picar.set_dir_servo_angle(scale*direction)
 
 
+def read_ultrasonic():
+    pin_D0=Pin("D0")
+    pin_D1=Pin("D1")
+    return Ultrasonic(pin_D0, pin_D1).read()
+
+def proc_ultrasonic(sensor_val):
+    thresh = 10
+    stop = False
+    if sensor_val < thresh:
+        stop = True
+    return stop
+
+
+def control_ultrasonic(stop):
+    global picar, the_terminator
+    speed = 20
+    if stop:
+        picar.stop()
+    else:
+        picar.forward(speed)
+
+
 def sigint_handler():
     global the_terminator
     the_terminator.set_message(True)
@@ -76,13 +100,20 @@ if __name__ == "__main__":
     sensitivity = 0.99
     polarity = 0
     scale = 200
-    speed = 20
 
-    # setup objects
+    # grayscale sensor busses
     sensor_values_bus = Bus(initial_message=[0, 0, 0],
                             name="sensor values bus")
     interpreter_bus = Bus(initial_message=0,
                           name="interpreter bus")
+
+    # ultrasonic sensor busses
+    ultra_sensor_bus = Bus(initial_message=0,
+                           name="ultrasonic sensor bus")
+    ultra_interpreter_bus = Bus(initial_message=False,
+                                name="ultrasonic interpreter bus")
+
+    # tell threads when to die
     the_terminator = Bus(initial_message=False,
                          name="Ill be back")
 
@@ -91,25 +122,38 @@ if __name__ == "__main__":
     interpreter_delay = 0.1
     control_delay = 0.1
 
-    picar.forward(speed)
-
+    # grayscale sensor threads
     gray_producer = Producer(read_sensor,
                              output_busses=sensor_values_bus,
                              delay=0.09,
                              name="Grayscale Sensor Producer")
-
     gray_proc = ConsumerProducer(proc_grayscale_sensor,
                                  input_busses=sensor_values_bus,
                                  output_busses=interpreter_bus,
                                  delay=0.1,
                                  name="Grayscale Sensor Processing")
-
     controller = Consumer(control,
                           input_busses=interpreter_bus,
                           delay=0.1,
                           name="Steering Controller")
 
-    thread_list = [gray_producer, gray_proc, controller]
+    # ultrasonic sensor threads
+    ultra_producer = Producer(read_ultrasonic,
+                              output_busses=ultra_sensor_bus,
+                              delay=0.01,
+                              name="Grayscale Sensor Producer")
+    ultra_proc = ConsumerProducer(proc_ultrasonic,
+                                  input_busses=ultra_sensor_bus,
+                                  output_busses=ultra_interpreter_bus,
+                                  delay=0.05,
+                                  name="Grayscale Sensor Processing")
+    ultra_control = Consumer(control_ultrasonic,
+                             input_busses=ultra_interpreter_bus,
+                             delay=0.05,
+                             name="Steering Controller")
 
+    thread_list = [gray_producer, gray_proc, controller, ultra_producer, ultra_proc, ultra_control]
+
+    # lets get this party started
     runConcurrently(thread_list)
     picar.stop()
