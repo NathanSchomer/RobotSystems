@@ -12,6 +12,7 @@ from ArmIK.ArmMoveIK import *
 import HiwonderSDK.Board as Board
 from CameraCalibration.CalibrationConfig import *
 from ImageUtils import ImageUtils
+from MoveUtils import MoveUtils
 
 if sys.version_info.major == 2:
     print('Please run this program with python3!')
@@ -37,15 +38,7 @@ def setTargetColor(target_color):
     return (True, ())
 
 
-# The angle at which the gripper is closed when gripping
-servo1 = 500
-
 # initial position
-def initMove():
-    Board.setBusServoPulse(1, servo1 - 50, 300)
-    Board.setBusServoPulse(2, 500, 500)
-    AK.setPitchRangeMoving((0, 10, 10), -30, -30, -90, 1500)
-
 def setBuzzer(timer):
     Board.setBuzzer(0)
     Board.setBuzzer(1)
@@ -112,7 +105,8 @@ def reset():
 # app initialization call
 def init():
     print("ColorTracking Init")
-    initMove()
+    move_utils = MoveUtils()
+    move_utils.initMove()
 
 # App start playing method call
 def start():
@@ -165,89 +159,74 @@ def move():
         'green': (-15 + 0.5, 6 - 0.5,  1.5),
         'blue':  (-15 + 0.5, 0 - 0.5,  1.5),
     }
+
+    move_utils = MoveUtils()
+
     while True:
         if __isRunning:
-            if first_move and start_pick_up: # When an object is detected for the first time               
+            if first_move and start_pick_up: # When an object is detected for the first time
                 action_finish = False
                 set_rgb(detect_color)
                 setBuzzer(0.1)               
-                result = AK.setPitchRangeMoving((world_X, world_Y - 2, 5), -90, -90, 0) # Do not fill in the running time parameter，Adaptive runtime
-                if result == False:
-                    unreachable = True
-                else:
-                    unreachable = False
-                time.sleep(result[2]/1000) # The third item of the return parameter is time
+                unreachable = move_utils.first_move(world_X, world_Y)
                 start_pick_up = False
                 first_move = False
                 action_finish = True
+
             elif not first_move and not unreachable: # If it is the tracking stage
                 set_rgb(detect_color)
                 if track: # If it is the tracking stage
                     if not __isRunning: # Stop and exit flag detection
                         continue
-                    AK.setPitchRangeMoving((world_x, world_y - 2, 5), -90, -90, 0, 20)
-                    time.sleep(0.02)                    
+
+                    move_utils.arm_raise(world_X, world_Y)
                     track = False
+
                 if start_pick_up: #If the object hasn't moved for a while，Start gripping
+                    
                     action_finish = False
+
                     if not __isRunning: # Stop and exit flag detection
                         continue
-                    Board.setBusServoPulse(1, servo1 - 280, 500)  # Paws open
-                    # Calculate the angle that the gripper needs to rotate
-                    servo2_angle = getAngle(world_X, world_Y, rotation_angle)
-                    Board.setBusServoPulse(2, servo2_angle, 500)
-                    time.sleep(0.8)
+
+                    move_utils.gripper_open()
+                    angle = getAngle(world_X, world_Y, rotation_angle)
+                    move_utils.gripper_angle(angle)
+                    move_utils.arm_lower(world_X, world_Y)
                     
                     if not __isRunning:
                         continue
-                    AK.setPitchRangeMoving((world_X, world_Y, 2), -90, -90, 0, 1000)  # lower the altitude
-                    time.sleep(2)
+
+                    move_utils.gripper_close()
+                    move_utils.arm_raise(world_X, world_Y)
                     
                     if not __isRunning:
                         continue
-                    Board.setBusServoPulse(1, servo1, 500)  # Holder closed
-                    time.sleep(1)
-                    
-                    if not __isRunning:
-                        continue
-                    Board.setBusServoPulse(2, 500, 500)
-                    AK.setPitchRangeMoving((world_X, world_Y, 12), -90, -90, 0, 1000)  # Robotic arm up
-                    time.sleep(1)
-                    
-                    if not __isRunning:
-                        continue
+
                     # Sort and place different colored squares
-                    result = AK.setPitchRangeMoving((coordinate[detect_color][0], coordinate[detect_color][1], 12), -90, -90, 0)   
-                    time.sleep(result[2]/1000)
+                    world_X = coordinate[detect_color][0]
+                    world_Y = coordinate[detect_color][1]  
+                    move_utils.move_arm(world_X, world_Y)
                     
                     if not __isRunning:
                         continue
-                    servo2_angle = getAngle(coordinate[detect_color][0], coordinate[detect_color][1], -90)
-                    Board.setBusServoPulse(2, servo2_angle, 500)
-                    time.sleep(0.5)
+
+                    angle = getAngle(coordinate[detect_color][0],
+                                     coordinate[detect_color][1], -90)
+                    move_utils.gripper_angle(angle)
 
                     if not __isRunning:
                         continue
-                    AK.setPitchRangeMoving((coordinate[detect_color][0], coordinate[detect_color][1], coordinate[detect_color][2] + 3), -90, -90, 0, 500)
-                    time.sleep(0.5)
-                    
-                    if not __isRunning:
-                        continue
-                    AK.setPitchRangeMoving((coordinate[detect_color]), -90, -90, 0, 1000)
-                    time.sleep(0.8)
-                    
-                    if not __isRunning:
-                        continue
-                    Board.setBusServoPulse(1, servo1 - 200, 500)  # Paws open，Drop the object
-                    time.sleep(0.8)
+
+                    X, Y, Z = coordinate[detect_color]
+                    move_utils.arm_lower_gentle(X, Y, Z)
+                    move_utils.gripper_open()
                     
                     if not __isRunning:
                         continue                    
-                    AK.setPitchRangeMoving((coordinate[detect_color][0], coordinate[detect_color][1], 12), -90, -90, 0, 800)
-                    time.sleep(0.8)
 
-                    initMove()  # Back to the initial position
-                    time.sleep(1.5)
+                    move_utils.arm_raise(world_X, world_Y)
+                    move_utils.initMove()
 
                     detect_color = 'None'
                     first_move = True
@@ -300,7 +279,7 @@ def run(img):
     if not __isRunning:
         return img
     
-    frame_lab = img_utils.preprocess(img_copy, get_roi, start_pick_up)
+    frame_lab = img_utils.preprocess(img_copy, get_roi, roi, start_pick_up)
     
     area_max = 0
     areaMaxContour = 0
